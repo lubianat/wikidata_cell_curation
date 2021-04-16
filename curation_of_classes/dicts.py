@@ -1,7 +1,7 @@
 taxon_dict = {
     "Mus musculus":"Q83310",
     "Homo sapiens": "Q15978631",
-    "Danio rerio": "Q169444"
+    "Danio rerio ": "Q169444"
     
 }
 
@@ -29,7 +29,9 @@ subclass_dict = {
     "fetal liver island macrophage":"Q106410670",
     "erythroblast": "Q3296909" ,
     "Human fetal liver island macrophage": "Q106410701",
-    "pigment cell":"Q504699"
+    "pigment cell":"Q504699",
+    "neural crest cell":"Q66592575",
+    "epithelial cell": "Q15176415"
 }
 
 part_of_dict = {
@@ -38,7 +40,7 @@ part_of_dict = {
     "fetal liver":"Q104539102",
     "epididymis": "Q1973610",
     "prostate": "Q9625",
-    "spleen": "Q9371"
+    "spleen": "Q9371",
     
     
 }
