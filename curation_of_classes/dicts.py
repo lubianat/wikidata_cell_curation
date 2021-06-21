@@ -41,6 +41,7 @@ part_of_dict = {
     "epididymis": "Q1973610",
     "prostate": "Q9625",
     "spleen": "Q9371",
-    
+    "epidermis": "Q796482",
+    "thymus": "Q163987"
     
 }

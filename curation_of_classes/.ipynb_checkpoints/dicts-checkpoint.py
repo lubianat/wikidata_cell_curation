@@ -40,7 +40,8 @@ part_of_dict = {
     "fetal liver":"Q104539102",
     "epididymis": "Q1973610",
     "prostate": "Q9625",
-    "spleen": "Q9371"
+    "spleen": "Q9371",
+    "epidermis": "Q796482",
     
     
 }
