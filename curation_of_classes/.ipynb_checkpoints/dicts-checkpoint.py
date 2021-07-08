@@ -42,6 +42,15 @@ part_of_dict = {
     "prostate": "Q9625",
     "spleen": "Q9371",
     "epidermis": "Q796482",
-    
+    "thymus": "Q163987",
+    "thymic medulla": "Q107446186",
+    "interfollicular epidermis": "Q106385904",
+    "hair follicle": "Q866324",
+    "peritoneal cavity": "Q1030169",
+    "liver":"Q9368",
+    "airways": "Q13400765",
+    "bronchius": "Q181602",
+    "esophagus": "Q173710",
+    "retina": "Q169342"
     
 }
