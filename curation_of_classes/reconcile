@@ -20,7 +20,7 @@ print(cells.head())
 
 with open("celltypes_dict.pickle", "rb") as handle:
     subclass_dict = pickle.load(handle)
-subclass_dict["human epithelial cell"] = "Q101404948"
+subclass_dict["CXCL1,2,8- expressing epithelial cell"] = "Q106892743"
 
 pwd = getpass.getpass()
 login_instance = wdi_login.WDLogin(user="TiagoLubiana", pwd=pwd)
