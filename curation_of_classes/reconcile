@@ -20,7 +20,9 @@ print(cells.head())
 
 with open("celltypes_dict.pickle", "rb") as handle:
     subclass_dict = pickle.load(handle)
-subclass_dict["stem cell"] = "Q48196"
+subclass_dict["mouse endothelial cell"] = "Q104416178"
+subclass_dict["mouse neuron"] = "Q104416303"
+subclass_dict["human  fibroblast "] = "Q101404861"
 
 pwd = getpass.getpass()
 login_instance = wdi_login.WDLogin(user="TiagoLubiana", pwd=pwd)
