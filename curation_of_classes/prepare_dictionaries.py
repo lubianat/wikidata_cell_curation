@@ -55,3 +55,21 @@ WHERE
 
 prepare_dictionary(sparql_query=human_genes_query, entity_type="human_gene")
 
+mouse_genes_query = """
+# mouse_genes on Wikidata
+SELECT DISTINCT ?label ?item
+WHERE 
+{
+  {
+    ?item wdt:P31 wd:Q7187 .
+    ?item wdt:P703 wd:Q83310 . 
+  }
+
+  { ?item skos:altLabel ?label . }
+  UNION
+  { ?item rdfs:label ?label . }
+  
+  FILTER(LANG(?label) = "en")
+}
+"""
+prepare_dictionary(sparql_query=mouse_genes_query, entity_type="mouse_gene")
