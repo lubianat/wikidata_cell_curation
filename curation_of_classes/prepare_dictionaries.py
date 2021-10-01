@@ -73,3 +73,23 @@ WHERE
 }
 """
 prepare_dictionary(sparql_query=mouse_genes_query, entity_type="mouse_gene")
+
+
+zebrafish_genes_query = """
+# zebrafish_genes on Wikidata
+SELECT DISTINCT ?label ?item
+WHERE 
+{
+  {
+    ?item wdt:P31 wd:Q7187 .
+    ?item wdt:P703 wd:Q169444 . 
+  }
+
+  { ?item skos:altLabel ?label . }
+  UNION
+  { ?item rdfs:label ?label . }
+  
+  FILTER(LANG(?label) = "en")
+}
+"""
+prepare_dictionary(sparql_query=zebrafish_genes_query, entity_type="zebrafish_gene")
