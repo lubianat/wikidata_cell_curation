@@ -14,6 +14,8 @@ os.system(
 
 cell_markers = pd.read_excel("cell_classes.xlsx", sheet_name="cell markers")
 
+print(cell_markers.head())
+
 
 def split_markers(marker_string):
 
@@ -45,36 +47,37 @@ def travel_gene_dict(gene_name, species):
             return gene_dict[gene]
 
 
-try:
-    for index, row in cell_markers.iterrows():
+for index, row in cell_markers.iterrows():
 
-        marker_labels = row["marker"]
-        print(marker_labels)
+    marker_labels = row["marker "]
+    print(marker_labels)
 
-        marker_list = split_markers(marker_labels)
-        data_for_item = []
-        stated_in_full_reference = wdi_core.WDItemID(
-            value=row["stated in"], prop_nr="P248", is_reference=True
-        )
-        references = [[stated_in_full_reference]]
+    marker_list = split_markers(marker_labels)
+    data_for_item = []
+    stated_in_full_reference = wdi_core.WDItemID(
+        value=row["stated in"], prop_nr="P248", is_reference=True
+    )
 
-        label = row["label"]
-        print(f"Running code for {label} ")
+    stated_in_full_reference = wdi_core.WDItemID(
+        value=row["stated in"], prop_nr="P248", is_reference=True
+    )
+    references = [[stated_in_full_reference]]
 
-        for marker in marker_list:
-            if "human" in label:
-                ## Look for human gene ID
-                qid = travel_gene_dict(marker, "human")
-                print(qid)
+    label = row["cell class"]
+    print(f"Running code for {label} ")
 
-            elif "mouse" in label:
-                ## Look for mouse gene ID
-                pass
+    for marker in marker_list:
+        if "human" in label:
+            ## Look for human gene ID
+            qid = travel_gene_dict(marker, "human")
+            print(qid)
 
-            elif "zebrafish" in label:
-                ## Look for zebrafish gene id
-                pass
-            else:
-                description = "cell type"
-except:
-    print("oops")
+        elif "mouse" in label:
+            ## Look for mouse gene ID
+            pass
+
+        elif "zebrafish" in label:
+            ## Look for zebrafish gene id
+            pass
+        else:
+            description = "cell type"
