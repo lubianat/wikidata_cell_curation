@@ -20,9 +20,7 @@ print(cells.head())
 
 with open("celltypes_dict.pickle", "rb") as handle:
     subclass_dict = pickle.load(handle)
-subclass_dict["mouse endothelial cell"] = "Q104416178"
-subclass_dict["mouse neuron"] = "Q104416303"
-subclass_dict["human  fibroblast "] = "Q101404861"
+subclass_dict["smooth muscle cell"] = "Q66508979"
 
 pwd = getpass.getpass()
 login_instance = wdi_login.WDLogin(user="TiagoLubiana", pwd=pwd)
@@ -65,12 +63,30 @@ try:
             description = "cell type"
 
         try:
-            if re.findall("Q[0-9]*", row["subclass of"]):
-                subclass = row["subclass of"]
-            else:
-                subclass = subclass_dict[row["subclass of"]]
 
-            data_for_item.append(wdi_core.WDItemID(value=subclass, prop_nr="P279"))
+            if "|" in row["subclass of"]:
+
+                subclass_terms = row["subclass of"].split("|")
+
+                subclass_terms = [term.strip() for term in subclass_terms]
+
+            else:
+                subclass_terms = [row["subclass of"]]
+
+
+
+            for subclass_term in subclass_terms:
+                print(f"Running for subclass term '{subclass_term}'")                          
+
+                if re.findall("Q[0-9]*", subclass_term):
+                    subclass = subclass_term
+                else:
+                    subclass = subclass_dict[subclass_term]
+
+                data_for_item.append(wdi_core.WDItemID(value=subclass, prop_nr="P279"))
+
+
+
 
             if str(row["anatomical location"]) != "nan":
                 if re.findall("Q[0-9]*", row["anatomical location"]):
