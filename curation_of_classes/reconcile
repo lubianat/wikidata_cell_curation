@@ -20,7 +20,8 @@ print(cells.head())
 
 with open("celltypes_dict.pickle", "rb") as handle:
     subclass_dict = pickle.load(handle)
-subclass_dict["smooth muscle cell"] = "Q66508979"
+
+subclass_dict["precursor cell"] = "Q11616062"
 
 pwd = getpass.getpass()
 login_instance = wdi_login.WDLogin(user="TiagoLubiana", pwd=pwd)

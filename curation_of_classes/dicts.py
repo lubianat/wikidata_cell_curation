@@ -11,29 +11,6 @@ instance_dict = {
     "cell state":"Q104539563"
 }
 
-subclass_dict = {
-    "progenitor cell":"Q1896218",
-    "thymocyte":"Q7799635",
-    "mouse early thymic progenitor cell": "Q106303241",
-    "mouse double-negative (DN) cell": "Q106303242",
-    "mouse  DN1 cells (CD44+CD252)": "Q106303259",
-    "mouse DN2 cells (CD44+CD25+)": "Q106303260",
-    "club cell": "Q645712",
-    "fibroblast": "Q463418",
-    "glycinergic neuron": "Q101062691",
-    "excitatory neuron": "Q104519429",
-    "cell":"Q7868",   
-    "cytotrophoblasts": "Q105321205",
-    "endothelial cell": "Q11394395",
-    "macrophage": "Q184204",
-    "fetal liver island macrophage":"Q106410670",
-    "erythroblast": "Q3296909" ,
-    "Human fetal liver island macrophage": "Q106410701",
-    "pigment cell":"Q504699",
-    "neural crest cell":"Q66592575",
-    "epithelial cell": "Q15176415"
-}
-
 part_of_dict = {
     "ventral cochlear nucleus (VCN)":"Q4771335",
     "placental villi":"Q2272222",
@@ -51,6 +28,11 @@ part_of_dict = {
     "airways": "Q13400765",
     "bronchius": "Q181602",
     "esophagus": "Q173710",
-    "retina": "Q169342"
-    
+    "retina": "Q169342",
+    "brain": "Q1073",
+    "lung": "Q7886",
+    "sciatic nerve": "Q307869",
+    "cochlea" : "Q317857",
+    "spiral ganglion": "Q3095145",
+    "dorsal root ganglion": "Q1395415"
 }
