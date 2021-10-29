@@ -34,5 +34,7 @@ part_of_dict = {
     "sciatic nerve": "Q307869",
     "cochlea" : "Q317857",
     "spiral ganglion": "Q3095145",
-    "dorsal root ganglion": "Q1395415"
+    "dorsal root ganglion": "Q1395415",
+    "colon": "Q5982337"
+
 }

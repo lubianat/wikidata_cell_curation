@@ -21,8 +21,7 @@ print(cells.head())
 with open("celltypes_dict.pickle", "rb") as handle:
     subclass_dict = pickle.load(handle)
 
-subclass_dict["precursor cell"] = "Q11616062"
-
+subclass_dict["inhibitory neuron"] = "Q104519432"
 pwd = getpass.getpass()
 login_instance = wdi_login.WDLogin(user="TiagoLubiana", pwd=pwd)
 
@@ -80,7 +79,7 @@ try:
                 print(f"Running for subclass term '{subclass_term}'")                          
 
                 if re.findall("Q[0-9]*", subclass_term):
-                    subclass = subclass_term
+                    subclass = subclass_term.strip()
                 else:
                     subclass = subclass_dict[subclass_term]
 
