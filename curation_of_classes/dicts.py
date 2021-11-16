@@ -35,6 +35,7 @@ part_of_dict = {
     "cochlea" : "Q317857",
     "spiral ganglion": "Q3095145",
     "dorsal root ganglion": "Q1395415",
-    "colon": "Q5982337"
+    "colon": "Q5982337",
+    "kidney": "Q9377"
 
 }
