@@ -21,7 +21,7 @@ print(cells.head())
 with open("celltypes_dict.pickle", "rb") as handle:
     subclass_dict = pickle.load(handle)
 
-subclass_dict["CD8 T cell"] = "Q376266"
+subclass_dict["neuron "] = "Q43054"
 pwd = getpass.getpass()
 login_instance = wdi_login.WDLogin(user="TiagoLubiana", pwd=pwd)
 
@@ -71,7 +71,7 @@ try:
                 subclass_terms = [term.strip() for term in subclass_terms]
 
             else:
-                subclass_terms = [row["subclass of"]]
+                subclass_terms = [row["subclass of"].strip()]
 
 
 
