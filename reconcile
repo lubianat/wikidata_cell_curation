@@ -2,7 +2,7 @@
 
 import os
 import pandas as pd
-from dicts import *
+from src.dicts import *
 import re
 import pickle
 import time
@@ -10,15 +10,15 @@ from wikidataintegrator import wdi_login, wdi_core
 import getpass
 
 os.system(
-    "wget -O cell_classes.xlsx https://docs.google.com/spreadsheets/d/e/2PACX-1vTanLtzxD6OXpu3Ze4aNITlIMZEqfK3qrrcNiwFE6kA-YVnuzULp3dG3oYIe5gYAVj28QWZnGwzN_H6/pub\?output\=xlsx"
+    "wget -O data/cell_classes.xlsx https://docs.google.com/spreadsheets/d/e/2PACX-1vTanLtzxD6OXpu3Ze4aNITlIMZEqfK3qrrcNiwFE6kA-YVnuzULp3dG3oYIe5gYAVj28QWZnGwzN_H6/pub\?output\=xlsx"
 )
 
-cells = pd.read_excel("cell_classes.xlsx", sheet_name="cell classes")
+cells = pd.read_excel("data/cell_classes.xlsx", sheet_name="cell classes")
 
 print("###### Biocuration of Cell Classes Table ######")
 print(cells.head())
 
-with open("celltypes_dict.pickle", "rb") as handle:
+with open("data/celltypes_dict.pickle", "rb") as handle:
     subclass_dict = pickle.load(handle)
 
 pwd = getpass.getpass()
@@ -63,7 +63,7 @@ try:
 
         try:
 
-            # Add subclass of (P279) statements 
+            # Add subclass of (P279) statements
             if "|" in row["subclass of"]:
                 subclass_terms = row["subclass of"].split("|")
                 subclass_terms = [term.strip() for term in subclass_terms]
@@ -71,9 +71,8 @@ try:
             else:
                 subclass_terms = [row["subclass of"].strip()]
 
-
             for subclass_term in subclass_terms:
-                print(f"Running for subclass term '{subclass_term}'")                          
+                print(f"Running for subclass term '{subclass_term}'")
 
                 if re.findall("Q[0-9]*", subclass_term):
                     subclass = subclass_term.strip()
@@ -138,9 +137,8 @@ try:
         time.sleep(1)
 
 except:
-    with open("celltypes_dict.pickle", "wb") as handle:
+    with open("data/celltypes_dict.pickle", "wb") as handle:
         pickle.dump(subclass_dict, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
-with open("celltypes_dict.pickle", "wb") as handle:
+with open("data/celltypes_dict.pickle", "wb") as handle:
     pickle.dump(subclass_dict, handle, protocol=pickle.HIGHEST_PROTOCOL)
-
