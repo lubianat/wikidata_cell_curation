@@ -1,22 +1,18 @@
 import os
 import pandas as pd
 from dicts import *
-import re
 import pickle
-import time
 from wikidataintegrator import wdi_login, wdi_core
 import getpass
 import json
-import sys
 
-# os.system(
-#    "wget -O cell_classes.xlsx https://docs.google.com/spreadsheets/d/e/2PACX-1vTanLtzxD6OXpu3Ze4aNITlIMZEqfK3qrrcNiwFE6kA-YVnuzULp3dG3oYIe5gYAVj28QWZnGwzN_H6/pub\?output\=xlsx"
-# )
+os.system(
+    "wget -O data/cell_classes.xlsx https://docs.google.com/spreadsheets/d/e/2PACX-1vTanLtzxD6OXpu3Ze4aNITlIMZEqfK3qrrcNiwFE6kA-YVnuzULp3dG3oYIe5gYAVj28QWZnGwzN_H6/pub\?output\=xlsx"
+)
 
-cell_markers = pd.read_excel("cell_classes.xlsx", sheet_name="cell markers")
+cell_markers = pd.read_excel("data/cell_classes.xlsx", sheet_name="cell markers")
 
 print(cell_markers.head())
-
 
 def split_markers(marker_string):
 
@@ -24,19 +20,15 @@ def split_markers(marker_string):
     marker_string = marker_string.replace("(", " ")
     marker_string = marker_string.replace(")", " ")
     marker_string = marker_string.replace(")", " ")
-
     sep_markers = marker_string.split(",")
     sep_markers = [s.replace("and", "").strip() for s in sep_markers]
     return sep_markers
 
-
 with open("celltypes_dict.pickle", "rb") as handle:
     subclass_dict = pickle.load(handle)
 
-subclass_dict["mouse glycynergic cell"] = "Q104416297"
 pwd = getpass.getpass()
 login_instance = wdi_login.WDLogin(user="TiagoLubiana", pwd=pwd)
-
 
 def travel_gene_dict(gene_name, species):
 
@@ -108,11 +100,4 @@ for index, row in cell_markers.iterrows():
             )
             print(wd_item)
             wd_item.write(login_instance)
-
-        elif "zebrafish" in label:
-            ## Look for zebrafish gene id
-            pass
-        else:
-            description = "cell type"
-
         break
