@@ -8,6 +8,7 @@ import pickle
 import time
 from wikidataintegrator import wdi_login, wdi_core
 import getpass
+from login import *
 
 os.system(
     "wget -O data/cell_classes.xlsx https://docs.google.com/spreadsheets/d/e/2PACX-1vTanLtzxD6OXpu3Ze4aNITlIMZEqfK3qrrcNiwFE6kA-YVnuzULp3dG3oYIe5gYAVj28QWZnGwzN_H6/pub\?output\=xlsx"
@@ -21,8 +22,8 @@ print(cells.head())
 with open("data/celltypes_dict.pickle", "rb") as handle:
     subclass_dict = pickle.load(handle)
 
-subclass_dict["adipocyte progenitor"] = "Q101062531"
-pwd = getpass.getpass()
+subclass_dict["granulocyte"] = "Q223143"
+#pwd = getpass.getpass()
 login_instance = wdi_login.WDLogin(user="TiagoLubiana", pwd=pwd)
 
 try:
@@ -37,30 +38,23 @@ try:
         label = row["label"]
         print(f"Running code for {label} ")
 
-        if "human" in label:
-            description = "cell type in Homo sapiens"
-            taxon = "Q15978631"
-
-            data_for_item.append(
-                wdi_core.WDItemID(value=taxon, prop_nr="P703", references=references)
-            )
-
-        elif "mouse" in label:
-            description = "cell type in Mus musculus"
-            taxon = "Q83310"
-
-            data_for_item.append(
-                wdi_core.WDItemID(value=taxon, prop_nr="P703", references=references)
-            )
-
-        elif "zebrafish" in label:
-            description = "cell type in Danio rerio"
-            taxon = "Q169444"
-            data_for_item.append(
-                wdi_core.WDItemID(value=taxon, prop_nr="P703", references=references)
-            )
-        else:
+        flag = 0
+        for species in species_list: 
+            if species in label and flag == 0:
+                flag = 1
+                species_qid = species_dict[species]["qid"]
+                species_name = species_dict[species]["species_name"]
+                description = f"cell type in {species_name}"
+                data_for_item.append(
+                    wdi_core.WDItemID(value=species_qid, prop_nr="P703", references=references)
+                )
+            else:
+                pass
+        
+        if flag == 0:
             description = "cell type"
+        else:
+            pass
 
         try:
 
