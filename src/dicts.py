@@ -51,11 +51,8 @@ species_dict = {
         "qid": "Q13422405",
         "species_name": "Spalax ehrenbergi"
     },
-
-
-
-
 }
+
 instance_dict = {
     "cell type":"Q189118",
     "cell class":"Q104852483",
@@ -89,6 +86,8 @@ part_of_dict = {
     "colon": "Q5982337",
     "kidney": "Q9377",
     "dura mater": "Q1394389",
-    "pancreas": "Q9618"
+    "pancreas": "Q9618",
+    "placenta": "Q1212935",
+    "intestine": "Q9639"
 
 }
