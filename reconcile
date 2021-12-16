@@ -22,7 +22,7 @@ print(cells.head())
 with open("data/celltypes_dict.pickle", "rb") as handle:
     subclass_dict = pickle.load(handle)
 
-subclass_dict["interneuron"] = "Q1500732"
+subclass_dict["enterocyteglial cell"] = "Q1340349"
 #pwd = getpass.getpass()
 login_instance = wdi_login.WDLogin(user="TiagoLubiana", pwd=pwd)
 

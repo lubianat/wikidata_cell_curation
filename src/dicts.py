@@ -51,6 +51,12 @@ species_dict = {
         "qid": "Q13422405",
         "species_name": "Spalax ehrenbergi"
     },
+
+    "Nematostella vectensis" : {
+        "qid": "Q139440",
+        "species_name": "Nematostella vectensis"
+
+    }
 }
 
 instance_dict = {
