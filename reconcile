@@ -76,7 +76,19 @@ try:
 
                 data_for_item.append(wdi_core.WDItemID(value=subclass, prop_nr="P279"))
 
-            # Add anatomical location (P927) statements
+            # Add develops from (P3094) statements
+            if str(row["develops from"]) != "nan":
+                if re.findall("Q[0-9]*", row["develops"]):
+                    precursor_cell = row["develops from"]
+                else:
+                    precursor_cell =  subclass_dict[row["develops from"]]
+
+                data_for_item.append(
+                    wdi_core.WDItemID(
+                        value=precursor_cell, prop_nr="P3094", references=references
+                    )
+                )
+            
             if str(row["anatomical location"]) != "nan":
                 if re.findall("Q[0-9]*", row["anatomical location"]):
                     part_of = row["anatomical location"]
