@@ -94,6 +94,7 @@ part_of_dict = {
     "dura mater": "Q1394389",
     "pancreas": "Q9618",
     "placenta": "Q1212935",
-    "intestine": "Q9639"
+    "intestine": "Q9639",
+    "skin": "Q1074"
 
 }
