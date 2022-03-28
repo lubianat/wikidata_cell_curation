@@ -4,7 +4,6 @@ import os
 import pandas as pd
 from src.dicts import *
 import re
-import pickle
 import time
 from wikidataintegrator import wdi_login, wdi_core
 import getpass
@@ -19,11 +18,18 @@ cells = pd.read_excel("data/cell_classes.xlsx", sheet_name="cell classes")
 print("###### Biocuration of Cell Classes Table ######")
 print(cells.head())
 
-with open("data/celltypes_dict.pickle", "rb") as handle:
-    subclass_dict = pickle.load(handle)
+subclass_dict = dicts["celltypes_dict"]
 
-subclass_dict["enterocyte"] = "Q1340349"
-#pwd = getpass.getpass()
+def write_cell_dict(subclass_dict):
+    with open("dictionaries/celltypes_dict.json", "w+") as f:
+        f.write(json.dumps(subclass_dict, indent=4, sort_keys=True))
+
+def add_key(dictionary, string):
+    qid = input(f"What is the qid for: {string} ?")
+
+    dictionary[string] = qid
+    return dictionary
+
 login_instance = wdi_login.WDLogin(user="TiagoLubiana", pwd=WDPASS)
 
 try:
@@ -72,6 +78,9 @@ try:
                 if re.findall("Q[0-9]*", subclass_term):
                     subclass = subclass_term.strip()
                 else:
+                    if subclass_term not in subclass_dict:
+                        subclass_dict = add_key(subclass_dict, subclass_term)
+
                     subclass = subclass_dict[subclass_term]
 
                 data_for_item.append(wdi_core.WDItemID(value=subclass, prop_nr="P279"))
@@ -144,8 +153,6 @@ try:
         time.sleep(1)
 
 except:
-    with open("data/celltypes_dict.pickle", "wb") as handle:
-        pickle.dump(subclass_dict, handle, protocol=pickle.HIGHEST_PROTOCOL)
+    pass
 
-with open("data/celltypes_dict.pickle", "wb") as handle:
-    pickle.dump(subclass_dict, handle, protocol=pickle.HIGHEST_PROTOCOL)
+write_cell_dict(subclass_dict)
