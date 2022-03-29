@@ -26,6 +26,8 @@ def write_cell_dict(subclass_dict):
         f.write(json.dumps(subclass_dict, indent=4, sort_keys=True))
 
 def add_key(dictionary, string):
+    clipboard.copy(string)
+
     qid = input(f"What is the qid for: {string} ?")
 
     dictionary[string] = qid
@@ -85,7 +87,6 @@ try:
                     subclass = subclass_term.strip()
                 else:
                     if subclass_term not in subclass_dict:
-                        clipboard.copy(subclass_term)
                         subclass_dict = add_key(subclass_dict, subclass_term)
                         
 
@@ -110,7 +111,11 @@ try:
                 if re.findall("Q[0-9]*", row["anatomical location"]):
                     part_of = row["anatomical location"]
                 else:
-                    part_of = part_of_dict[row["anatomical location"]]
+                    if row["anatomical location"] not in dicts["part_of"]:
+                        dicts["part_of"] = add_key(dicts["part_of"], row["anatomical location"])
+                        
+
+                    part_of = dicts["part_of"][row["anatomical location"]]
 
                 data_for_item.append(
                     wdi_core.WDItemID(
