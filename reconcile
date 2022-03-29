@@ -35,14 +35,19 @@ login_instance = wdi_login.WDLogin(user="TiagoLubiana", pwd=WDPASS)
 try:
     for index, row in cells.iterrows():
 
+        label = row["label"]
+        print(f"Running code for {label} ")
+
+        if label in subclass_dict:
+            continue
+
         data_for_item = []
         stated_in_full_reference = wdi_core.WDItemID(
             value=row["stated in"], prop_nr="P248", is_reference=True
         )
         references = [[stated_in_full_reference]]
 
-        label = row["label"]
-        print(f"Running code for {label} ")
+
 
         flag = 0
         for species in species_list: 
