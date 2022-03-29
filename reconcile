@@ -8,6 +8,7 @@ import time
 from wikidataintegrator import wdi_login, wdi_core
 import getpass
 from src.login import *
+import clipboard
 
 os.system(
     "wget -O data/cell_classes.xlsx https://docs.google.com/spreadsheets/d/e/2PACX-1vTanLtzxD6OXpu3Ze4aNITlIMZEqfK3qrrcNiwFE6kA-YVnuzULp3dG3oYIe5gYAVj28QWZnGwzN_H6/pub\?output\=xlsx"
@@ -84,7 +85,9 @@ try:
                     subclass = subclass_term.strip()
                 else:
                     if subclass_term not in subclass_dict:
+                        clipboard.copy(subclass_term)
                         subclass_dict = add_key(subclass_dict, subclass_term)
+                        
 
                     subclass = subclass_dict[subclass_term]
 
