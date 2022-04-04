@@ -15,15 +15,16 @@ os.system(
 )
 
 cells = pd.read_excel("data/cell_classes.xlsx", sheet_name="cell classes")
-
 print("###### Biocuration of Cell Classes Table ######")
 print(cells.head())
 
 subclass_dict = dicts["celltypes_dict"]
 
+
 def write_cell_dict(subclass_dict):
     with open("dictionaries/celltypes_dict.json", "w+") as f:
         f.write(json.dumps(subclass_dict, indent=4, sort_keys=True))
+
 
 def add_key(dictionary, string):
     clipboard.copy(string)
@@ -32,6 +33,7 @@ def add_key(dictionary, string):
 
     dictionary[string] = qid
     return dictionary
+
 
 login_instance = wdi_login.WDLogin(user="TiagoLubiana", pwd=WDPASS)
 
@@ -50,21 +52,21 @@ try:
         )
         references = [[stated_in_full_reference]]
 
-
-
         flag = 0
-        for species in species_list: 
+        for species in species_list:
             if species in label and flag == 0:
                 flag = 1
                 species_qid = species_dict[species]["qid"]
                 species_name = species_dict[species]["species_name"]
                 description = f"cell type in {species_name}"
                 data_for_item.append(
-                    wdi_core.WDItemID(value=species_qid, prop_nr="P703", references=references)
+                    wdi_core.WDItemID(
+                        value=species_qid, prop_nr="P703", references=references
+                    )
                 )
             else:
                 pass
-        
+
         if flag == 0:
             description = "cell type"
         else:
@@ -83,12 +85,14 @@ try:
             for subclass_term in subclass_terms:
                 print(f"Running for subclass term '{subclass_term}'")
 
+                if subclass_term == "":
+                    continue
+
                 if re.findall("Q[0-9]*", subclass_term):
                     subclass = subclass_term.strip()
                 else:
                     if subclass_term not in subclass_dict:
                         subclass_dict = add_key(subclass_dict, subclass_term)
-                        
 
                     subclass = subclass_dict[subclass_term]
 
@@ -99,22 +103,22 @@ try:
                 if re.findall("Q[0-9]*", row["develops from"]):
                     precursor_cell = row["develops from"]
                 else:
-                    precursor_cell =  subclass_dict[row["develops from"]]
+                    precursor_cell = subclass_dict[row["develops from"]]
 
                 data_for_item.append(
                     wdi_core.WDItemID(
                         value=precursor_cell, prop_nr="P3094", references=references
                     )
                 )
-            
+
             if str(row["anatomical location"]) != "nan":
                 if re.findall("Q[0-9]*", row["anatomical location"]):
                     part_of = row["anatomical location"]
                 else:
                     if row["anatomical location"] not in dicts["part_of"]:
-                        dicts["part_of"] = add_key(dicts["part_of"], row["anatomical location"])
-                        
-
+                        dicts["part_of"] = add_key(
+                            dicts["part_of"], row["anatomical location"]
+                        )
                     part_of = dicts["part_of"][row["anatomical location"]]
 
                 data_for_item.append(
