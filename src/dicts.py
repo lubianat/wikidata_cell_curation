@@ -52,6 +52,11 @@ species_dict = {
         "species_name": "Macaca fascicularis"
     },
 
+
+    "rhesus": {
+        "qid": "Q156606",
+        "species_name": "Macaca mulatta"
+    },
     "hamster": {
         "qid": "Q204175",
         "species_name": "Mesocricetus auratus"
@@ -71,7 +76,13 @@ species_dict = {
         "qid": "Q139440",
         "species_name": "Nematostella vectensis"
 
-    }
+    }, 
+    "primate " : {
+        "qid": "Q7380",
+        "species_name": "primates"
+
+    }, 
+
 }
 
 instance_dict = {

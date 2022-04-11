@@ -9,6 +9,7 @@ from wikidataintegrator import wdi_login, wdi_core
 import getpass
 from src.login import *
 import clipboard
+from wdcuration import add_key
 
 os.system(
     "wget -O data/cell_classes.xlsx https://docs.google.com/spreadsheets/d/e/2PACX-1vTanLtzxD6OXpu3Ze4aNITlIMZEqfK3qrrcNiwFE6kA-YVnuzULp3dG3oYIe5gYAVj28QWZnGwzN_H6/pub\?output\=xlsx"
@@ -20,19 +21,9 @@ print(cells.head())
 
 subclass_dict = dicts["celltypes_dict"]
 
-
 def write_cell_dict(subclass_dict):
     with open("dictionaries/celltypes_dict.json", "w+") as f:
         f.write(json.dumps(subclass_dict, indent=4, sort_keys=True))
-
-
-def add_key(dictionary, string):
-    clipboard.copy(string)
-
-    qid = input(f"What is the qid for: {string} ?")
-
-    dictionary[string] = qid
-    return dictionary
 
 
 login_instance = wdi_login.WDLogin(user="TiagoLubiana", pwd=WDPASS)
