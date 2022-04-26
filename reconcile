@@ -28,139 +28,137 @@ def write_cell_dict(subclass_dict):
 
 login_instance = wdi_login.WDLogin(user="TiagoLubiana", pwd=WDPASS)
 
-try:
-    for index, row in cells.iterrows():
 
-        label = row["label"]
-        print(f"Running code for {label} ")
+for index, row in cells.iterrows():
 
-        if label in subclass_dict:
-            continue
+    label = row["label"]
+    print(f"Running code for {label} ")
 
-        data_for_item = []
-        stated_in_full_reference = wdi_core.WDItemID(
-            value=row["stated in"], prop_nr="P248", is_reference=True
-        )
-        references = [[stated_in_full_reference]]
+    if label in subclass_dict:
+        continue
 
-        flag = 0
-        for species in species_list:
-            if species in label and flag == 0:
-                flag = 1
-                species_qid = species_dict[species]["qid"]
-                species_name = species_dict[species]["species_name"]
-                description = f"cell type in {species_name}"
-                data_for_item.append(
-                    wdi_core.WDItemID(
-                        value=species_qid, prop_nr="P703", references=references
-                    )
+    data_for_item = []
+    stated_in_full_reference = wdi_core.WDItemID(
+        value=row["stated in"], prop_nr="P248", is_reference=True
+    )
+    references = [[stated_in_full_reference]]
+
+    flag = 0
+    for species in species_list:
+        if species in label and flag == 0:
+            flag = 1
+            species_qid = species_dict[species]["qid"]
+            species_name = species_dict[species]["species_name"]
+            description = f"cell type in {species_name}"
+            data_for_item.append(
+                wdi_core.WDItemID(
+                    value=species_qid, prop_nr="P703", references=references
                 )
-            else:
-                pass
-
-        if flag == 0:
-            description = "cell type"
+            )
         else:
             pass
 
-        try:
+    if flag == 0:
+        description = "cell type"
+    else:
+        pass
 
-            # Add subclass of (P279) statements
-            if "|" in row["subclass of"]:
-                subclass_terms = row["subclass of"].split("|")
-                subclass_terms = [term.strip() for term in subclass_terms]
+    try:
 
+        # Add subclass of (P279) statements
+        if "|" in row["subclass of"]:
+            subclass_terms = row["subclass of"].split("|")
+            subclass_terms = [term.strip() for term in subclass_terms]
+
+        else:
+            subclass_terms = [row["subclass of"].strip()]
+
+        for subclass_term in subclass_terms:
+            print(f"Running for subclass term '{subclass_term}'")
+
+            if subclass_term == "":
+                continue
+
+            if re.findall("Q[0-9]*", subclass_term):
+                subclass = subclass_term.strip()
             else:
-                subclass_terms = [row["subclass of"].strip()]
+                if subclass_term not in subclass_dict:
+                    subclass_dict = add_key(subclass_dict, subclass_term)
 
-            for subclass_term in subclass_terms:
-                print(f"Running for subclass term '{subclass_term}'")
+                subclass = subclass_dict[subclass_term]
 
-                if subclass_term == "":
-                    continue
+            data_for_item.append(wdi_core.WDItemID(value=subclass, prop_nr="P279"))
 
-                if re.findall("Q[0-9]*", subclass_term):
-                    subclass = subclass_term.strip()
-                else:
-                    if subclass_term not in subclass_dict:
-                        subclass_dict = add_key(subclass_dict, subclass_term)
+        # Add develops from (P3094) statements
+        if str(row["develops from"]) != "nan":
+            if re.findall("Q[0-9]*", row["develops from"]):
+                precursor_cell = row["develops from"]
+            else:
+                precursor_cell = subclass_dict[row["develops from"]]
 
-                    subclass = subclass_dict[subclass_term]
+            data_for_item.append(
+                wdi_core.WDItemID(
+                    value=precursor_cell, prop_nr="P3094", references=references
+                )
+            )
 
-                data_for_item.append(wdi_core.WDItemID(value=subclass, prop_nr="P279"))
-
-            # Add develops from (P3094) statements
-            if str(row["develops from"]) != "nan":
-                if re.findall("Q[0-9]*", row["develops from"]):
-                    precursor_cell = row["develops from"]
-                else:
-                    precursor_cell = subclass_dict[row["develops from"]]
-
-                data_for_item.append(
-                    wdi_core.WDItemID(
-                        value=precursor_cell, prop_nr="P3094", references=references
+        if str(row["anatomical location"]) != "nan":
+            if re.findall("Q[0-9]*", row["anatomical location"]):
+                part_of = row["anatomical location"]
+            else:
+                if row["anatomical location"] not in dicts["part_of"]:
+                    dicts["part_of"] = add_key(
+                        dicts["part_of"], row["anatomical location"]
                     )
+                part_of = dicts["part_of"][row["anatomical location"]]
+
+            data_for_item.append(
+                wdi_core.WDItemID(
+                    value=part_of, prop_nr="P927", references=references
                 )
+            )
 
-            if str(row["anatomical location"]) != "nan":
-                if re.findall("Q[0-9]*", row["anatomical location"]):
-                    part_of = row["anatomical location"]
-                else:
-                    if row["anatomical location"] not in dicts["part_of"]:
-                        dicts["part_of"] = add_key(
-                            dicts["part_of"], row["anatomical location"]
-                        )
-                    part_of = dicts["part_of"][row["anatomical location"]]
+        # Add article that describes item via "described by source" (P1343)
+        if str(row["described by source"]) != "nan":
+            data_for_item.append(
+                wdi_core.WDItemID(value=row["described by source"], prop_nr="P1343")
+            )
 
-                data_for_item.append(
-                    wdi_core.WDItemID(
-                        value=part_of, prop_nr="P927", references=references
-                    )
-                )
+    except Exception:
+        print("failed: ")
+        print(row)
+        break
 
-            # Add article that describes item via "described by source" (P1343)
-            if str(row["described by source"]) != "nan":
-                data_for_item.append(
-                    wdi_core.WDItemID(value=row["described by source"], prop_nr="P1343")
-                )
+    # Add instances of "cell type"
 
-        except:
-            print("failed: ")
-            print(row)
-            break
+    if str(row["instance of"]) != "nan":
+        instance = instance_dict[row["instance of"]]
+    else:
+        instance = instance_dict["cell type"]
 
-        # Add instances of "cell type"
+    data_for_item.append(
+        wdi_core.WDItemID(value=instance, prop_nr="P31", references=references)
+    )
 
-        if str(row["instance of"]) != "nan":
-            instance = instance_dict[row["instance of"]]
-        else:
-            instance = instance_dict["cell type"]
+    wd_item = wdi_core.WDItemEngine(data=data_for_item)
 
-        data_for_item.append(
-            wdi_core.WDItemID(value=instance, prop_nr="P31", references=references)
-        )
+    if str(row["aliases"]) != "nan":
+        aliases = row["aliases"].split("|")
+    else:
+        aliases = []
 
-        wd_item = wdi_core.WDItemEngine(data=data_for_item)
+    # Add listed aliases, labels and descriptions (set earlier)
+    wd_item.set_label(label=label, lang="en")
+    wd_item.set_aliases(aliases, lang="en")
+    wd_item.set_description(description, lang="en")
 
-        if str(row["aliases"]) != "nan":
-            aliases = row["aliases"].split("|")
-        else:
-            aliases = []
+    try:
+        wd_item.write(login_instance)
+        subclass_dict[label] = wd_item.wd_item_id
+    except Exception:
+        print("Something went wrong")
 
-        # Add listed aliases, labels and descriptions (set earlier)
-        wd_item.set_label(label=label, lang="en")
-        wd_item.set_aliases(aliases, lang="en")
-        wd_item.set_description(description, lang="en")
+    time.sleep(1)
 
-        try:
-            wd_item.write(login_instance)
-            subclass_dict[label] = wd_item.wd_item_id
-        except:
-            print("Something went wrong")
-
-        time.sleep(1)
-
-except:
-    pass
 
 write_cell_dict(subclass_dict)

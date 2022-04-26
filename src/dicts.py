@@ -88,5 +88,7 @@ species_dict = {
 instance_dict = {
     "cell type":"Q189118",
     "cell class":"Q104852483",
-    "cell state":"Q104539563"
+    "cell state":"Q104539563",
+    "lipotype": "Q111649907",
+    "Q111649907": "Q111649907"
 }
