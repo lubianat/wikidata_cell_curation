@@ -81,7 +81,12 @@ species_dict = {
         "qid": "Q7380",
         "species_name": "primates"
 
-    }, 
+    },
+    "murine " : {
+        "qid": "Q30266",
+        "species_name": "murines"
+
+    },  
 
 }
 

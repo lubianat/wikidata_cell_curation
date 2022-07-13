@@ -19,22 +19,27 @@ cells = pd.read_excel("data/cell_classes.xlsx", sheet_name="cell classes")
 print("###### Biocuration of Cell Classes Table ######")
 print(cells.head())
 
-subclass_dict = dicts["celltypes_dict"]
+celltypes_dict = dicts["celltypes_dict"]
 
-def write_cell_dict(subclass_dict):
+
+def write_dict(reference_dict, reference_dict_name):
+    with open(f"dictionaries/{reference_dict_name}.json", "w+") as f:
+        f.write(json.dumps(reference_dict, indent=4, sort_keys=True))
+
+
+def write_cell_dict(celltypes_dict):
     with open("dictionaries/celltypes_dict.json", "w+") as f:
-        f.write(json.dumps(subclass_dict, indent=4, sort_keys=True))
+        f.write(json.dumps(celltypes_dict, indent=4, sort_keys=True))
 
 
 login_instance = wdi_login.WDLogin(user="TiagoLubiana", pwd=WDPASS)
-
 
 for index, row in cells.iterrows():
 
     label = row["label"]
     print(f"Running code for {label} ")
 
-    if label in subclass_dict:
+    if label in celltypes_dict:
         continue
 
     data_for_item = []
@@ -65,36 +70,67 @@ for index, row in cells.iterrows():
 
     try:
 
-        # Add subclass of (P279) statements
-        if "|" in row["subclass of"]:
-            subclass_terms = row["subclass of"].split("|")
-            subclass_terms = [term.strip() for term in subclass_terms]
+        def get_integrator_statement(
+            row,
+            reference_dict_name,
+            rowname,
+            dict_list=dicts,
+        ):
+            reference_dict = dicts[reference_dict_name]
+            if "|" in row[rowname]:
+                terms = row[rowname].split("|")
+                terms = [term.strip() for term in terms]
 
-        else:
-            subclass_terms = [row["subclass of"].strip()]
-
-        for subclass_term in subclass_terms:
-            print(f"Running for subclass term '{subclass_term}'")
-
-            if subclass_term == "":
-                continue
-
-            if re.findall("Q[0-9]*", subclass_term):
-                subclass = subclass_term.strip()
             else:
-                if subclass_term not in subclass_dict:
-                    subclass_dict = add_key(subclass_dict, subclass_term)
+                terms = [row[rowname].strip()]
 
-                subclass = subclass_dict[subclass_term]
+            for term in terms:
+                print(f"Running for term '{term}'")
 
-            data_for_item.append(wdi_core.WDItemID(value=subclass, prop_nr="P279"))
+                if term == "":
+                    continue
+
+                if re.findall("Q[0-9]*", term):
+                    subclass = term.strip()
+                else:
+                    if term not in reference_dict:
+                        reference_dict = add_key(celltypes_dict, term)
+
+                    subclass = reference_dict[term]
+
+            write_dict(reference_dict, reference_dict_name)
+            return wdi_core.WDItemID(value=subclass, prop_nr="P279")
+
+        # Add subclass of (P279) statements
+        data_for_item.append(
+            get_integrator_statement(
+                row, rowname="subclass of", reference_dict_name="celltypes_dict"
+            )
+        )
+
+        # Add term in higher taxon (P10019) statements
+        if str(row["term in higher taxon"]) != "nan":
+            higher_taxon_term = row["term in higher taxon"].strip()
+            if re.findall("Q[0-9]*", row["term in higher taxon"]):
+                higher_taxon = higher_taxon_term
+            else:
+                if row["term in higher taxon"] not in celltypes_dict:
+                    celltypes_dict = add_key(
+                        celltypes_dict, row["term in higher taxon"]
+                    )
+
+                higher_taxon = celltypes_dict[higher_taxon_term]
+
+            data_for_item.append(
+                wdi_core.WDItemID(value=higher_taxon, prop_nr="P10019")
+            )
 
         # Add develops from (P3094) statements
         if str(row["develops from"]) != "nan":
             if re.findall("Q[0-9]*", row["develops from"]):
                 precursor_cell = row["develops from"]
             else:
-                precursor_cell = subclass_dict[row["develops from"]]
+                precursor_cell = celltypes_dict[row["develops from"]]
 
             data_for_item.append(
                 wdi_core.WDItemID(
@@ -103,18 +139,11 @@ for index, row in cells.iterrows():
             )
 
         if str(row["anatomical location"]) != "nan":
-            if re.findall("Q[0-9]*", row["anatomical location"]):
-                part_of = row["anatomical location"]
-            else:
-                if row["anatomical location"] not in dicts["part_of"]:
-                    dicts["part_of"] = add_key(
-                        dicts["part_of"], row["anatomical location"]
-                    )
-                part_of = dicts["part_of"][row["anatomical location"]]
-
             data_for_item.append(
-                wdi_core.WDItemID(
-                    value=part_of, prop_nr="P927", references=references
+                get_integrator_statement(
+                    row,
+                    rowname="anatomical location",
+                    reference_dict_name="part_of",
                 )
             )
 
@@ -155,11 +184,11 @@ for index, row in cells.iterrows():
 
     try:
         wd_item.write(login_instance)
-        subclass_dict[label] = wd_item.wd_item_id
+        celltypes_dict[label] = wd_item.wd_item_id
     except Exception:
         print("Something went wrong")
 
     time.sleep(1)
 
 
-write_cell_dict(subclass_dict)
+write_cell_dict(celltypes_dict)
