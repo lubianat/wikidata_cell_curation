@@ -6,9 +6,7 @@ from src.dicts import *
 import re
 import time
 from wikidataintegrator import wdi_login, wdi_core
-import getpass
 from src.login import *
-import clipboard
 from wdcuration import add_key
 
 os.system(
@@ -20,6 +18,39 @@ print("###### Biocuration of Cell Classes Table ######")
 print(cells.head())
 
 celltypes_dict = dicts["celltypes_dict"]
+
+
+def get_integrator_statement(
+    row,
+    prop_nr,
+    reference_dict_name,
+    rowname,
+    dict_list=dicts,
+):
+    reference_dict = dicts[reference_dict_name]
+    if "|" in row[rowname]:
+        terms = row[rowname].split("|")
+        terms = [term.strip() for term in terms]
+
+    else:
+        terms = [row[rowname].strip()]
+
+    for term in terms:
+        print(f"Running for term '{term}'")
+
+        if term == "":
+            continue
+
+        if re.findall("Q[0-9]*", term):
+            subclass = term.strip()
+        else:
+            if term not in reference_dict:
+                reference_dict = add_key(celltypes_dict, term)
+
+            subclass = reference_dict[term]
+
+    write_dict(reference_dict, reference_dict_name)
+    return wdi_core.WDItemID(value=subclass, prop_nr=prop_nr)
 
 
 def write_dict(reference_dict, reference_dict_name):
@@ -70,41 +101,13 @@ for index, row in cells.iterrows():
 
     try:
 
-        def get_integrator_statement(
-            row,
-            reference_dict_name,
-            rowname,
-            dict_list=dicts,
-        ):
-            reference_dict = dicts[reference_dict_name]
-            if "|" in row[rowname]:
-                terms = row[rowname].split("|")
-                terms = [term.strip() for term in terms]
-
-            else:
-                terms = [row[rowname].strip()]
-
-            for term in terms:
-                print(f"Running for term '{term}'")
-
-                if term == "":
-                    continue
-
-                if re.findall("Q[0-9]*", term):
-                    subclass = term.strip()
-                else:
-                    if term not in reference_dict:
-                        reference_dict = add_key(celltypes_dict, term)
-
-                    subclass = reference_dict[term]
-
-            write_dict(reference_dict, reference_dict_name)
-            return wdi_core.WDItemID(value=subclass, prop_nr="P279")
-
         # Add subclass of (P279) statements
         data_for_item.append(
             get_integrator_statement(
-                row, rowname="subclass of", reference_dict_name="celltypes_dict"
+                row,
+                rowname="subclass of",
+                prop_nr="P279",
+                reference_dict_name="celltypes_dict",
             )
         )
 
@@ -142,6 +145,7 @@ for index, row in cells.iterrows():
             data_for_item.append(
                 get_integrator_statement(
                     row,
+                    prop_nr="P927",
                     rowname="anatomical location",
                     reference_dict_name="part_of",
                 )

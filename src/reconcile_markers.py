@@ -5,14 +5,22 @@ import pickle
 from wikidataintegrator import wdi_login, wdi_core
 import getpass
 import json
+from pathlib import Path
+
+HERE = Path(__file__).parent.resolve()
+DATA = HERE.parent.joinpath("data").resolve()
 
 os.system(
-    "wget -O data/cell_classes.xlsx https://docs.google.com/spreadsheets/d/e/2PACX-1vTanLtzxD6OXpu3Ze4aNITlIMZEqfK3qrrcNiwFE6kA-YVnuzULp3dG3oYIe5gYAVj28QWZnGwzN_H6/pub\?output\=xlsx"
+    "wget -O data/cell_classes.xlsx"
+    "https://docs.google.com/spreadsheets/d/e/"
+    r"2PACX-1vTanLtzxD6OXpu3Ze4aNITlIMZEqfK3qrrcNiwFE6kA-"
+    r"YVnuzULp3dG3oYIe5gYAVj28QWZnGwzN_H6/pub\?output\=xlsx"
 )
 
 cell_markers = pd.read_excel("data/cell_classes.xlsx", sheet_name="cell markers")
 
 print(cell_markers.head())
+
 
 def split_markers(marker_string):
 
@@ -24,11 +32,13 @@ def split_markers(marker_string):
     sep_markers = [s.replace("and", "").strip() for s in sep_markers]
     return sep_markers
 
+
 with open("celltypes_dict.pickle", "rb") as handle:
     subclass_dict = pickle.load(handle)
 
 pwd = getpass.getpass()
 login_instance = wdi_login.WDLogin(user="TiagoLubiana", pwd=pwd)
+
 
 def travel_gene_dict(gene_name, species):
 
