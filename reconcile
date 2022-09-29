@@ -2,22 +2,159 @@
 import traceback
 import os
 import pandas as pd
-from src.dicts import *
+from src.dicts import DICTS
 import re
 import time
 from wikidataintegrator import wdi_login, wdi_core
 from src.login import *
 from wdcuration import add_key
+import json
 
-os.system(
-    "wget -O data/cell_classes.xlsx https://docs.google.com/spreadsheets/d/e/2PACX-1vTanLtzxD6OXpu3Ze4aNITlIMZEqfK3qrrcNiwFE6kA-YVnuzULp3dG3oYIe5gYAVj28QWZnGwzN_H6/pub\?output\=xlsx"
-)
 
-cells = pd.read_excel("data/cell_classes.xlsx", sheet_name="cell classes")
-print("###### Biocuration of Cell Classes Table ######")
-print(cells.head())
+def main():
+    global DICTS
+    os.system(
+        "wget -O data/cell_classes.xlsx https://docs.google.com/spreadsheets/d/e/2PACX-1vTanLtzxD6OXpu3Ze4aNITlIMZEqfK3qrrcNiwFE6kA-YVnuzULp3dG3oYIe5gYAVj28QWZnGwzN_H6/pub\?output\=xlsx"
+    )
 
-celltypes_dict = dicts["celltypes_dict"]
+    cells = pd.read_excel("data/cell_classes.xlsx", sheet_name="cell classes")
+    print("###### Biocuration of Cell Classes Table ######")
+    print(cells.head())
+
+    celltypes_dict = DICTS["celltypes_dict"]
+
+    login_instance = wdi_login.WDLogin(user="TiagoLubiana", pwd=WDPASS)
+
+    for index, row in cells.iterrows():
+
+        label = row["label"]
+        print(f"Running code for {label} ")
+
+        if label in celltypes_dict:
+            continue
+
+        data_for_item = []
+        stated_in_full_reference = wdi_core.WDItemID(
+            value=row["stated in"], prop_nr="P248", is_reference=True
+        )
+        references = [[stated_in_full_reference]]
+
+        flag = 0
+        for species in species_list:
+            if species in label and flag == 0:
+                flag = 1
+                species_qid = species_dict[species]["qid"]
+                species_name = species_dict[species]["species_name"]
+                description = f"cell type in {species_name}"
+                data_for_item.append(
+                    wdi_core.WDItemID(
+                        value=species_qid, prop_nr="P703", references=references
+                    )
+                )
+            else:
+                pass
+
+        if flag == 0:
+            description = "cell type"
+        else:
+            pass
+
+        try:
+
+            # Add subclass of (P279) statements
+            data_for_item.append(
+                get_integrator_statement(
+                    row,
+                    rowname="subclass of",
+                    prop_nr="P279",
+                    reference_dict_name="celltypes_dict",
+                )
+            )
+
+            # Add term in higher taxon (P10019) statements
+            if str(row["term in higher taxon"]) != "nan":
+                higher_taxon_term = row["term in higher taxon"].strip()
+                if re.findall("Q[0-9]*", row["term in higher taxon"]):
+                    higher_taxon = higher_taxon_term
+                else:
+                    if row["term in higher taxon"] not in celltypes_dict:
+                        celltypes_dict = add_key(
+                            celltypes_dict, row["term in higher taxon"]
+                        )
+
+                    higher_taxon = celltypes_dict[higher_taxon_term]
+
+                data_for_item.append(
+                    wdi_core.WDItemID(value=higher_taxon, prop_nr="P10019")
+                )
+
+            # Add develops from (P3094) statements
+            if str(row["develops from"]) != "nan":
+                if re.findall("Q[0-9]*", row["develops from"]):
+                    precursor_cell = row["develops from"]
+                else:
+                    precursor_cell = celltypes_dict[row["develops from"]]
+
+                data_for_item.append(
+                    wdi_core.WDItemID(
+                        value=precursor_cell, prop_nr="P3094", references=references
+                    )
+                )
+
+            if str(row["anatomical location"]) != "nan":
+                data_for_item.append(
+                    get_integrator_statement(
+                        row,
+                        prop_nr="P927",
+                        rowname="anatomical location",
+                        reference_dict_name="part_of",
+                    )
+                )
+
+            # Add article that describes item via "described by source" (P1343)
+            if str(row["described by source"]) != "nan":
+                data_for_item.append(
+                    wdi_core.WDItemID(value=row["described by source"], prop_nr="P1343")
+                )
+
+        except Exception:
+            traceback.print_exc()
+            print("failed: ")
+            print(row)
+            break
+
+        # Add instances of "cell type"
+
+        if str(row["instance of"]) != "nan":
+            instance = instance_dict[row["instance of"]]
+        else:
+            instance = instance_dict["cell type"]
+
+        data_for_item.append(
+            wdi_core.WDItemID(value=instance, prop_nr="P31", references=references)
+        )
+
+        wd_item = wdi_core.WDItemEngine(data=data_for_item)
+
+        if str(row["aliases"]) != "nan":
+            aliases = row["aliases"].split("|")
+        else:
+            aliases = []
+
+        # Add listed aliases, labels and descriptions (set earlier)
+        wd_item.set_label(label=label, lang="en")
+        wd_item.set_aliases(aliases, lang="en")
+        wd_item.set_description(description, lang="en")
+
+        try:
+            wd_item.write(login_instance)
+            celltypes_dict[label] = wd_item.wd_item_id
+        except Exception:
+            print("Something went wrong")
+
+        time.sleep(1)
+
+    write_cell_dict(celltypes_dict)
 
 
 def get_integrator_statement(
@@ -25,9 +162,9 @@ def get_integrator_statement(
     prop_nr,
     reference_dict_name,
     rowname,
-    dict_list=dicts,
+    dict_list=DICTS,
 ):
-    reference_dict = dicts[reference_dict_name]
+    reference_dict = DICTS[reference_dict_name]
     if "|" in row[rowname]:
         terms = row[rowname].split("|")
         terms = [term.strip() for term in terms]
@@ -63,136 +200,5 @@ def write_cell_dict(celltypes_dict):
         f.write(json.dumps(celltypes_dict, indent=4, sort_keys=True))
 
 
-login_instance = wdi_login.WDLogin(user="TiagoLubiana", pwd=WDPASS)
-
-for index, row in cells.iterrows():
-
-    label = row["label"]
-    print(f"Running code for {label} ")
-
-    if label in celltypes_dict:
-        continue
-
-    data_for_item = []
-    stated_in_full_reference = wdi_core.WDItemID(
-        value=row["stated in"], prop_nr="P248", is_reference=True
-    )
-    references = [[stated_in_full_reference]]
-
-    flag = 0
-    for species in species_list:
-        if species in label and flag == 0:
-            flag = 1
-            species_qid = species_dict[species]["qid"]
-            species_name = species_dict[species]["species_name"]
-            description = f"cell type in {species_name}"
-            data_for_item.append(
-                wdi_core.WDItemID(
-                    value=species_qid, prop_nr="P703", references=references
-                )
-            )
-        else:
-            pass
-
-    if flag == 0:
-        description = "cell type"
-    else:
-        pass
-
-    try:
-
-        # Add subclass of (P279) statements
-        data_for_item.append(
-            get_integrator_statement(
-                row,
-                rowname="subclass of",
-                prop_nr="P279",
-                reference_dict_name="celltypes_dict",
-            )
-        )
-
-        # Add term in higher taxon (P10019) statements
-        if str(row["term in higher taxon"]) != "nan":
-            higher_taxon_term = row["term in higher taxon"].strip()
-            if re.findall("Q[0-9]*", row["term in higher taxon"]):
-                higher_taxon = higher_taxon_term
-            else:
-                if row["term in higher taxon"] not in celltypes_dict:
-                    celltypes_dict = add_key(
-                        celltypes_dict, row["term in higher taxon"]
-                    )
-
-                higher_taxon = celltypes_dict[higher_taxon_term]
-
-            data_for_item.append(
-                wdi_core.WDItemID(value=higher_taxon, prop_nr="P10019")
-            )
-
-        # Add develops from (P3094) statements
-        if str(row["develops from"]) != "nan":
-            if re.findall("Q[0-9]*", row["develops from"]):
-                precursor_cell = row["develops from"]
-            else:
-                precursor_cell = celltypes_dict[row["develops from"]]
-
-            data_for_item.append(
-                wdi_core.WDItemID(
-                    value=precursor_cell, prop_nr="P3094", references=references
-                )
-            )
-
-        if str(row["anatomical location"]) != "nan":
-            data_for_item.append(
-                get_integrator_statement(
-                    row,
-                    prop_nr="P927",
-                    rowname="anatomical location",
-                    reference_dict_name="part_of",
-                )
-            )
-
-        # Add article that describes item via "described by source" (P1343)
-        if str(row["described by source"]) != "nan":
-            data_for_item.append(
-                wdi_core.WDItemID(value=row["described by source"], prop_nr="P1343")
-            )
-
-    except Exception:
-        traceback.print_exc()
-        print("failed: ")
-        print(row)
-        break
-
-    # Add instances of "cell type"
-
-    if str(row["instance of"]) != "nan":
-        instance = instance_dict[row["instance of"]]
-    else:
-        instance = instance_dict["cell type"]
-
-    data_for_item.append(
-        wdi_core.WDItemID(value=instance, prop_nr="P31", references=references)
-    )
-
-    wd_item = wdi_core.WDItemEngine(data=data_for_item)
-
-    if str(row["aliases"]) != "nan":
-        aliases = row["aliases"].split("|")
-    else:
-        aliases = []
-
-    # Add listed aliases, labels and descriptions (set earlier)
-    wd_item.set_label(label=label, lang="en")
-    wd_item.set_aliases(aliases, lang="en")
-    wd_item.set_description(description, lang="en")
-
-    try:
-        wd_item.write(login_instance)
-        celltypes_dict[label] = wd_item.wd_item_id
-    except Exception:
-        print("Something went wrong")
-
-    time.sleep(1)
-
-
-write_cell_dict(celltypes_dict)
+if __name__ == "__main__":
+    main()
