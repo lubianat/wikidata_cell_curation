@@ -1,5 +1,6 @@
-import requests
 import json
+
+import requests
 
 
 def prepare_dictionary(sparql_query, entity_type, base_dir="dictionaries/"):

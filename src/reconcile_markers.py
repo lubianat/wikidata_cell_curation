@@ -1,11 +1,13 @@
-import os
-import pandas as pd
-from dicts import *
-import pickle
-from wikidataintegrator import wdi_login, wdi_core
 import getpass
 import json
+import os
+import pickle
 from pathlib import Path
+
+import pandas as pd
+from wikidataintegrator import wdi_core, wdi_login
+
+from dicts import *
 
 HERE = Path(__file__).parent.resolve()
 DATA = HERE.parent.joinpath("data").resolve()
