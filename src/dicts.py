@@ -25,6 +25,7 @@ SPECIES_DICT = OrderedDict(
         "rhesus": {"qid": "Q156606", "species_name": "Macaca mulatta"},
         "hamster": {"qid": "Q204175", "species_name": "Mesocricetus auratus"},
         "rat": {"qid": "Q184224", "species_name": "Rattus norvegicus"},
+        "cat": {"qid": "Q20980826", "species_name": "Felis catus"},
         "Middle East blind mole rat": {
             "qid": "Q13422405",
             "species_name": "Spalax ehrenbergi",

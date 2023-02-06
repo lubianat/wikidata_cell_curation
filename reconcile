@@ -19,23 +19,16 @@ def main():
     os.system(
         "wget -O data/cell_classes.xlsx https://docs.google.com/spreadsheets/d/e/2PACX-1vTanLtzxD6OXpu3Ze4aNITlIMZEqfK3qrrcNiwFE6kA-YVnuzULp3dG3oYIe5gYAVj28QWZnGwzN_H6/pub\?output\=xlsx"
     )
-
     cells = pd.read_excel("data/cell_classes.xlsx", sheet_name="cell classes")
     print("###### Biocuration of Cell Classes Table ######")
     print(cells.head())
-
     celltypes_dict = DICTS["celltypes_dict"]
-
     login_instance = wdi_login.WDLogin(user="TiagoLubiana", pwd=WDPASS)
-
-    for index, row in cells.iterrows():
-
+    for _, row in cells.iterrows():
         label = row["label"]
         print(f"Running code for {label} ")
-
         if label in celltypes_dict:
             continue
-
         data_for_item = []
         stated_in_full_reference = wdi_core.WDItemID(
             value=row["stated in"], prop_nr="P248", is_reference=True
@@ -56,14 +49,12 @@ def main():
                 )
             else:
                 pass
-
         if flag == 0:
             description = "cell type"
         else:
             pass
 
         try:
-
             # Add subclass of (P279) statements
             data_for_item.append(
                 get_integrator_statement(
@@ -73,7 +64,6 @@ def main():
                     reference_dict_name="celltypes_dict",
                 )
             )
-
             # Add term in higher taxon (P10019) statements
             if str(row["term in higher taxon"]) != "nan":
                 higher_taxon_term = row["term in higher taxon"].strip()
@@ -84,26 +74,21 @@ def main():
                         celltypes_dict = add_key(
                             celltypes_dict, row["term in higher taxon"]
                         )
-
                     higher_taxon = celltypes_dict[higher_taxon_term]
-
                 data_for_item.append(
                     wdi_core.WDItemID(value=higher_taxon, prop_nr="P10019")
                 )
-
             # Add develops from (P3094) statements
             if str(row["develops from"]) != "nan":
                 if re.findall("Q[0-9]*", row["develops from"]):
                     precursor_cell = row["develops from"]
                 else:
                     precursor_cell = celltypes_dict[row["develops from"]]
-
                 data_for_item.append(
                     wdi_core.WDItemID(
                         value=precursor_cell, prop_nr="P3094", references=references
                     )
                 )
-
             if str(row["anatomical location"]) != "nan":
                 data_for_item.append(
                     get_integrator_statement(
@@ -113,13 +98,11 @@ def main():
                         reference_dict_name="part_of",
                     )
                 )
-
             # Add article that describes item via "described by source" (P1343)
             if str(row["described by source"]) != "nan":
                 data_for_item.append(
                     wdi_core.WDItemID(value=row["described by source"], prop_nr="P1343")
                 )
-
         except Exception:
             traceback.print_exc()
             print("failed: ")
@@ -127,7 +110,6 @@ def main():
             break
 
         # Add instances of "cell type"
-
         if str(row["instance of"]) != "nan":
             instance = INSTANCE_DICT[row["instance of"]]
         else:
@@ -171,16 +153,13 @@ def get_integrator_statement(
     if "|" in row[rowname]:
         terms = row[rowname].split("|")
         terms = [term.strip() for term in terms]
-
     else:
         terms = [row[rowname].strip()]
 
     for term in terms:
         print(f"Running for term '{term}'")
-
         if term == "":
             continue
-
         if re.findall("Q[0-9]*", term):
             subclass = term.strip()
         else:
