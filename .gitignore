@@ -1,3 +1,5 @@
 *.json*.csv
 ./curation_venv
 login.py
+*/login.py
+src/login.py

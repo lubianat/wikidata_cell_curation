@@ -1,0 +1,4 @@
+pathlib
+pandas
+wikibaseintegrator
+openpyxl

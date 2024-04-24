@@ -1,16 +1,18 @@
-import getpass
 import json
 import os
-import pickle
 from pathlib import Path
-
 import pandas as pd
-from wikidataintegrator import wdi_core, wdi_login
+from wikibaseintegrator import WikibaseIntegrator
+from login import USER, PASS
 
-from dicts import *
+from wikibaseintegrator import wbi_login
+
+login_instance = wbi_login.Clientlogin(user=USER, password=PASS)
+wbi = WikibaseIntegrator(login=login_instance)
 
 HERE = Path(__file__).parent.resolve()
 DATA = HERE.parent.joinpath("data").resolve()
+DICTS = HERE.parent.joinpath("dictionaries").resolve()
 
 os.system(
     "wget -O data/cell_classes.xlsx"
@@ -21,11 +23,7 @@ os.system(
 
 cell_markers = pd.read_excel("data/cell_classes.xlsx", sheet_name="cell markers")
 
-print(cell_markers.head())
-
-
 def split_markers(marker_string):
-
     marker_string = marker_string.replace("+", " ")
     marker_string = marker_string.replace("(", " ")
     marker_string = marker_string.replace(")", " ")
@@ -35,12 +33,7 @@ def split_markers(marker_string):
     return sep_markers
 
 
-with open("celltypes_dict.pickle", "rb") as handle:
-    subclass_dict = pickle.load(handle)
-
-pwd = getpass.getpass()
-login_instance = wdi_login.WDLogin(user="TiagoLubiana", pwd=pwd)
-
+cell_type_dict = json.loads(DICTS.joinpath("celltypes_dict.json").read_text())
 
 def travel_gene_dict(gene_name, species):
 
@@ -52,6 +45,8 @@ def travel_gene_dict(gene_name, species):
         if gene == gene_name:
             return gene_dict[gene]
 
+from wikibaseintegrator import datatypes
+
 
 for index, row in cell_markers.iterrows():
 
@@ -60,56 +55,31 @@ for index, row in cell_markers.iterrows():
 
     marker_list = split_markers(marker_labels)
     data_for_item = []
-    stated_in_full_reference = wdi_core.WDItemID(
-        value=row["stated in"], prop_nr="P248", is_reference=True
-    )
 
-    stated_as_full_reference = wdi_core.WDString(
-        value=row["stated as"], prop_nr="P1932", is_reference=True
-    )
-    references = [[stated_in_full_reference, stated_as_full_reference]]
+
+    references = [
+        [
+    datatypes.MonolingualText(text=row["stated as"], prop_nr="P1683",language="en"),
+        datatypes.Item(value=row["stated in"], prop_nr="P248")]
+        ]
 
     label = row["cell class"]
     print(f"Running code for {label} ")
 
+    entity = wbi.item.get(cell_type_dict[row["cell class"]])
+
     for marker in marker_list:
+        print(marker)
         if "human" in label:
-            ## Look for human gene ID
-            qid = travel_gene_dict(marker, "human")
-
-            try:
-                data_for_item.append(
-                    wdi_core.WDItemID(
-                        value=qid,
-                        prop_nr="P8872",
-                        references=references,
-                    )
-                )
-                print(qid)
-                cell_type_id = subclass_dict[row["cell class"]]
-                print(cell_type_id)
-                wd_item = wdi_core.WDItemEngine(
-                    wd_item_id=cell_type_id, data=data_for_item, append_value=["P8872"]
-                )
-                print(wd_item)
-                wd_item.write(login_instance)
-            except:
-                print(f"Failed for {marker}")
-
+            gene_qid = travel_gene_dict(marker, "human")
         elif "mouse" in label:
-            qid = travel_gene_dict(marker, "mouse")
+            gene_qid = travel_gene_dict(marker, "human")
+        else:
+            continue
+        new_claim = datatypes.Item(prop_nr='P8872', value=gene_qid, references=references)
+        print(gene_qid)
+        print(entity.claims)
+        entity.claims.add(new_claim)
+        print(entity.claims)
 
-            data_for_item.append(
-                wdi_core.WDItemID(value=qid, prop_nr="P8872", references=references)
-            )
-            print(qid)
-            cell_type_id = subclass_dict[row["cell class"]]
-            print(cell_type_id)
-            wd_item = wdi_core.WDItemEngine(
-                wd_item_id=cell_type_id,
-                data=data_for_item,
-                append_value=["P8872"],
-            )
-            print(wd_item)
-            wd_item.write(login_instance)
-        break
+    entity.write()
