@@ -2,13 +2,14 @@ import json
 import os
 from pathlib import Path
 import pandas as pd
-from wikibaseintegrator import WikibaseIntegrator
+from wikibaseintegrator import WikibaseIntegrator, wbi_login, datatypes
+from wikibaseintegrator.wbi_enums import ActionIfExists
+from wikibaseintegrator.wbi_config import config as wbi_config
 from login import USER, PASS
-
-from wikibaseintegrator import wbi_login
 
 login_instance = wbi_login.Clientlogin(user=USER, password=PASS)
 wbi = WikibaseIntegrator(login=login_instance)
+wbi_config["USER_AGENT"] = "Marker Reconciler (by TiagoLubiana)"
 
 HERE = Path(__file__).parent.resolve()
 DATA = HERE.parent.joinpath("data").resolve()
@@ -23,63 +24,77 @@ os.system(
 
 cell_markers = pd.read_excel("data/cell_classes.xlsx", sheet_name="cell markers")
 
+
 def split_markers(marker_string):
-    marker_string = marker_string.replace("+", " ")
-    marker_string = marker_string.replace("(", " ")
-    marker_string = marker_string.replace(")", " ")
-    marker_string = marker_string.replace(")", " ")
-    sep_markers = marker_string.split(",")
-    sep_markers = [s.replace("and", "").strip() for s in sep_markers]
-    return sep_markers
+    replacements = ["+", "(", ")"]
+    for r in replacements:
+        marker_string = marker_string.replace(r, " ")
+    return [s.replace("and", "").strip() for s in marker_string.split(",")]
 
 
 cell_type_dict = json.loads(DICTS.joinpath("celltypes_dict.json").read_text())
+cell_type_dict.update(
+    json.loads(DICTS.joinpath("cell_types_from_wiki.json").read_text())
+)
+
 
 def travel_gene_dict(gene_name, species):
+    path = DICTS.joinpath(f"{species}_gene.json")
+    gene_dict = json.loads(path.read_text())
+    return gene_dict.get(gene_name)
 
-    path = f"dictionaries/{species}_gene.json"
-    with open(path, "r") as f:
-        gene_dict = json.loads(f.read())
 
-    for gene in gene_dict:
-        if gene == gene_name:
-            return gene_dict[gene]
-
-from wikibaseintegrator import datatypes
-
+# Load existing missing items to a set to avoid duplicates
+missing_items_path = DATA.joinpath("missing_items.txt")
+if missing_items_path.exists():
+    with open(missing_items_path, "r") as file:
+        existing_missing_items = set(file.read().splitlines())
+else:
+    existing_missing_items = set()
 
 for index, row in cell_markers.iterrows():
-
-    marker_labels = row["marker "]
+    marker_labels = row["marker "].strip()
     print(marker_labels)
 
     marker_list = split_markers(marker_labels)
-    data_for_item = []
-
 
     references = [
         [
-    datatypes.MonolingualText(text=row["stated as"], prop_nr="P1683",language="en"),
-        datatypes.Item(value=row["stated in"], prop_nr="P248")]
+            datatypes.MonolingualText(
+                text=row["stated as"], prop_nr="P1683", language="en"
+            ),
+            datatypes.Item(value=row["stated in"], prop_nr="P248"),
         ]
+    ]
 
     label = row["cell class"]
     print(f"Running code for {label} ")
-
-    entity = wbi.item.get(cell_type_dict[row["cell class"]])
+    try:
+        entity = wbi.item.get(cell_type_dict[label])
+    except KeyError:
+        print(f"Item for {label} not found")
+        if label not in existing_missing_items:
+            existing_missing_items.add(label)
+            with open(missing_items_path, "a") as file:
+                file.write(label + "\n")
+        continue
 
     for marker in marker_list:
         print(marker)
-        if "human" in label:
-            gene_qid = travel_gene_dict(marker, "human")
-        elif "mouse" in label:
-            gene_qid = travel_gene_dict(marker, "human")
-        else:
-            continue
-        new_claim = datatypes.Item(prop_nr='P8872', value=gene_qid, references=references)
+        gene_qid = travel_gene_dict(marker, "human" if "human" in label else "mouse")
         print(gene_qid)
-        print(entity.claims)
-        entity.claims.add(new_claim)
-        print(entity.claims)
 
-    entity.write()
+        if not gene_qid:
+            if label not in existing_missing_items:
+                existing_missing_items.add(label)
+                with open(missing_items_path, "a") as file:
+                    file.write(label + "\n")
+            break
+
+        new_claim = datatypes.Item(
+            prop_nr="P8872", value=gene_qid, references=references
+        )
+        entity.claims.add(
+            new_claim, action_if_exists=ActionIfExists.MERGE_REFS_OR_APPEND
+        )
+        entity.write(summary="Add marker for cell type curated from the literature.")

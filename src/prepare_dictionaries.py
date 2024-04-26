@@ -10,7 +10,7 @@ def prepare_dictionary(sparql_query, entity_type, base_dir="dictionaries/"):
 
     Arguments:
         sparql_query: A Wikidata SPARQL query to retrieve the labels and the ids of interest
-        entity_type: The entity type for the dictionary. This will be used to label the dictionary 
+        entity_type: The entity type for the dictionary. This will be used to label the dictionary
     """
 
     endpoint_url = "https://query.wikidata.org/sparql"
@@ -44,13 +44,7 @@ human_genes_query = """
 SELECT DISTINCT ?label ?item
 WHERE 
 {
-  {?item wdt:P353 ?any .}
-
-  { ?item skos:altLabel ?label . }
-  UNION
-  { ?item rdfs:label ?label . }
-  
-  FILTER(LANG(?label) = "en")
+  {?item wdt:P353 ?label .}
 }
 """
 
@@ -65,32 +59,21 @@ WHERE
     ?item wdt:P31 wd:Q7187 .
     ?item wdt:P703 wd:Q83310 . 
   }
-
-  { ?item skos:altLabel ?label . }
-  UNION
-  { ?item rdfs:label ?label . }
-  
-  FILTER(LANG(?label) = "en")
+    ?item wdt:P2394 ?label .   
 }
 """
 prepare_dictionary(sparql_query=mouse_genes_query, entity_type="mouse_gene")
 
 
-zebrafish_genes_query = """
-# zebrafish_genes on Wikidata
+cell_types_query = """
 SELECT DISTINCT ?label ?item
 WHERE 
 {
   {
-    ?item wdt:P31 wd:Q7187 .
-    ?item wdt:P703 wd:Q169444 . 
+    ?item wdt:P31 wd:Q189118 .
   }
-
-  { ?item skos:altLabel ?label . }
-  UNION
-  { ?item rdfs:label ?label . }
-  
-  FILTER(LANG(?label) = "en")
+    ?item rdfs:label ?label . 
+    FILTER(LANG(?label) = "en")  
 }
 """
-prepare_dictionary(sparql_query=zebrafish_genes_query, entity_type="zebrafish_gene")
+prepare_dictionary(sparql_query=cell_types_query, entity_type="cell_types_from_wiki")
