@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Wikidata Query Results</title>
+  <style>
+    body {
+      font-family: '', sans-serif;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th,
+    td {
+      padding: 8px;
+      text-align: left;
+      border-bottom: 1px solid #ddd;
+    }
+
+    th {
+      background-color: #f2f2f2;
+    }
+
+    footer {
+      margin-top: 20px;
+      font-size: 0.8em;
+      text-align: center;
+    }
+
+    .italic {
+      font-style: italic;
+    }
+
+    .silentLink {
+      color: inherit;
+      /* Make links inherit the text color */
+      text-decoration: none;
+      /* No underline */
+    }
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+  <script src="https://cdn.datatables.net/1.11.3/js/jquery.dataTables.min.js"></script>
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.11.3/css/jquery.dataTables.min.css">
+  <script>
+    $(document).ready(function () {
+      const endpoint = "https://query.wikidata.org/sparql";
+      const sparqlQuery = `
+SELECT ?species ?speciesLabel ?cell ?cellLabel ?gene ?geneLabel ?source ?sourceLabel ?quotation
+WHERE {
+  ?cell wdt:P703 ?species .
+  ?species wdt:P225 ?speciesLabel . 
+  ?cell p:P8872 ?st . 
+  ?st ps:P8872 ?gene . 
+  ?st prov:wasDerivedFrom ?provenance. 
+  ?provenance pr:P248 ?source . 
+  ?provenance pr:P1683 ?quotation . 
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en". }
+}`;
+
+      const queryUrl = endpoint + "?query=" + encodeURIComponent(sparqlQuery) + "&format=json";
+
+      $.ajax({
+        url: queryUrl,
+        success: function (data) {
+          var html =
+            '<table id="resultsTable"><thead><tr><th>Species</th><th>Cell</th><th>Gene</th><th>Source</th><th>Quotation</th></tr></thead><tbody>';
+          data.results.bindings.forEach(function (item) {
+            html += `<tr>
+                   <td class="italic silentLink"><a class="silentLink" href="${item.species.value}" target="_blank">${item.speciesLabel.value}</a></td>
+                   <td>
+                    <a class="silentLink" href="${item.cell.value}" target="_blank" style="color: #0000FF; font-weight:bold">${item.cellLabel.value}</a>
+                   <td class="italic"><a class="silentLink" href="${item.gene.value}" target="_blank" style="color: #aa3300; font-style: italic">${item.geneLabel.value}</a></td>
+                   <td><a class="silentLink" href="${item.source.value}" target="_blank">${item.sourceLabel.value}</a></td>
+                   <td>${item.quotation.value}</td>
+                 </tr>`;
+          });
+          html += '</tbody></table>';
+          $('#data').html(html);
+          initDataTable();
+        }
+      });
+
+      function initDataTable() {
+        var table = $('#resultsTable').DataTable();
+
+        // Set up a dropdown filter for each column
+        table.columns().every(function () {
+          var column = this;
+          var title = $(column.header()).text(); // Store the current header text
+          var select = $('<br><select><option value="">' + "Any" + '</option></select>')
+            .appendTo($(column.header()).empty().append(title)) // Keep the header and add the dropdown
+            .on('change', function () {
+              var val = $.fn.dataTable.util.escapeRegex($(this).val());
+              column
+                .search(val ? '^' + val + '$' : '', true, false)
+                .draw();
+            });
+
+
+          // Extract and sort unique text content from each cell in the column
+          column.data().unique().sort().each(function (d, j) {
+            // Create a new dummy element to hold the original content
+            var dummy = $('<div>').html(d);
+            // Extract clean text from the dummy element
+            var text = dummy.text();
+
+            // Ensure text is not empty and add unique options only
+            if (text && select.find('option[value="' + text + '"]').length === 0) {
+              select.append($('<option>').val(text).text(text));
+            }
+          });
+        });
+      }
+    });
+  </script>
+</head>
+
+<body>
+  <h1>Curated Cell Markers with Quotations</h1>
+  <p>Spotted anything weird? Just click on the cell type name and fix it!</p>
+  <div id="data"></div>
+  <footer>
+    This site is in public domain dedication (CC0). Created by Tiago Lubiana. Data is queried live from <a
+      href="https://www.wikidata.org" target="_blank">Wikidata</a>.
+  </footer>
+</body>
+
+</html>
