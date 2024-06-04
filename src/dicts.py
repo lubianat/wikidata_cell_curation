@@ -24,6 +24,7 @@ SPECIES_DICT = OrderedDict(
         "macaque": {"qid": "Q301676", "species_name": "Macaca fascicularis"},
         "rhesus": {"qid": "Q156606", "species_name": "Macaca mulatta"},
         "hamster": {"qid": "Q204175", "species_name": "Mesocricetus auratus"},
+        "Pekin duck": {"qid": "Q994014", "species_name": "the Pekin duck"},
         "rat": {"qid": "Q184224", "species_name": "Rattus norvegicus"},
         "cat": {"qid": "Q20980826", "species_name": "Felis catus"},
         "Middle East blind mole rat": {

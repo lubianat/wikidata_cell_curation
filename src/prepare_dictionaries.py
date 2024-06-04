@@ -77,3 +77,19 @@ WHERE
 }
 """
 prepare_dictionary(sparql_query=cell_types_query, entity_type="cell_types_from_wiki")
+
+
+# Anything with an UBERON ID is an anatomical entity
+
+anatomical_entities_query = """
+SELECT DISTINCT ?label ?item
+WHERE 
+{
+  {
+    ?item wdt:P1554 ?any .
+  }
+    ?item rdfs:label ?label . 
+    FILTER(LANG(?label) = "en")  
+}
+"""
+prepare_dictionary(sparql_query=cell_types_query, entity_type="anatomical_entities")
