@@ -2,3 +2,6 @@ pathlib
 pandas
 wikibaseintegrator
 openpyxl
+wdcuration
+wikidataintegrator
+setuptools

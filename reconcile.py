@@ -2,48 +2,105 @@
 
 import json
 import os
-import re
-import time
-import traceback
+from pathlib import Path
 import pandas as pd
+import logging
 
-from wdcuration import add_key
-from wikidataintegrator import wdi_core, wdi_login
+from wikibaseintegrator import WikibaseIntegrator, wbi_login, datatypes
+from wikibaseintegrator.wbi_enums import ActionIfExists
+from wikibaseintegrator.wbi_config import config as wbi_config
+
+from src.login import USER, PASS
+from wdcuration import WikidataDictAndKey, add_key
 
 from src.dicts import DICTS, SPECIES_DICT, INSTANCE_DICT
-from src.login import *
+import re
+import time
+
+# Setup logging
+logging.basicConfig(
+    level=logging.WARNING, format="%(asctime)s - %(levelname)s - %(message)s"
+)
+
+NAME_TO_PID = {
+    "stated in": "P248",
+    "subclass of": "P279"
+}
+
+NAME_TO_QID_DICT = {
+    "subclass of": "celltypes_dict"
+}
+
+def get_quick_item_prop(
+                        source,
+                        header, 
+                        data_for_item = [],
+                        qid_dict_dict = NAME_TO_QID_DICT,
+                        pid_dict=NAME_TO_PID,
+                        with_reference=True,
+                        append_to_data = True):
+    if with_reference:
+        references = [[get_quick_item_prop(source, "stated in", with_reference=False)]]
+        
+        try:
+         targets = source[header].split(sep="|")
+        except AttributeError: 
+            print(f"No value found for '{header}' while processing {source['label']}")
+            quit()
+        if len(targets)> 1:
+            for target in targets:
+                target = target.strip() 
+                data_for_item.append(get_quick_item_prop(source = {header:target, "stated in":source["stated in"]},
+                    header = header,
+                    data_for_item = data_for_item,
+                    append_to_data=False))
+        else:
+            target = targets[0]
+
+        if re.findall("Q[0-9]*", target):
+            target_qid = target
+
+        else:
+            reference_dict = DICTS[qid_dict_dict[header]]
+            if target not in reference_dict:
+                reference_dict = add_key(reference_dict, target)
+                write_dict(reference_dict, qid_dict_dict[header])
+            target_qid = reference_dict[target]
+        
+        statement = datatypes.Item(value=target_qid, prop_nr=pid_dict[header],
+                              references=references)
+        if append_to_data ==False:
+            return statement
+        else:
+            data_for_item.append(statement)
+            return(data_for_item)
+        
+    else:
+        return datatypes.Item(value=source[header], prop_nr=pid_dict[header])
+
 
 
 def main():
-    # Download data from Google Sheet
-    os.system(
-        "wget -O data/cell_classes.xlsx https://docs.google.com/spreadsheets/d/e/2PACX-1vTanLtzxD6OXpu3Ze4aNITlIMZEqfK3qrrcNiwFE6kA-YVnuzULp3dG3oYIe5gYAVj28QWZnGwzN_H6/pub\?output\=xlsx"
-    )
 
-    # Load data from the downloaded file
-    cells_df = pd.read_excel("data/cell_classes.xlsx", sheet_name="cell classes")
+    cells_df = pd.read_csv("https://docs.google.com/spreadsheets/d/e/2PACX-1vTanLtzxD6OXpu3Ze4aNITlIMZEqfK3qrrcNiwFE6kA-YVnuzULp3dG3oYIe5gYAVj28QWZnGwzN_H6/pub?gid=0&single=true&output=csv")
 
     print("###### Biocuration of Cell Classes Table ######")
     print(cells_df.head())
 
-    # Initialize login
-    login_instance = wdi_login.WDLogin(user="TiagoLubiana", pwd=WDPASS)
+    login_instance = wbi_login.Clientlogin(user=USER, password=PASS)
+    wbi = WikibaseIntegrator(login=login_instance)
+    wbi_config["USER_AGENT"] = "Cell Reconciler (by TiagoLubiana)"
 
-    # Iterate over each row of the table and create corresponding Wikidata items
     for _, row in cells_df.iterrows():
-        label = row["label"]
-        print(f"Running code for {label} ")
 
-        # Skip rows with labels that have already been processed
+        label = row["label"]
         if label in DICTS["celltypes_dict"]:
             continue
 
-        # Create references for the statements
-        stated_in_full_reference = wdi_core.WDItemID(
-            value=row["stated in"], prop_nr="P248", is_reference=True
-        )
-        references = [[stated_in_full_reference]]
+        print(f"Running code for {label} ")
 
+        references = [[get_quick_item_prop(row, "stated in", with_reference=False)]]
+        
         # Determine the species of the cell type and set description accordingly
         species = get_species_from_label(label)
         if species:
@@ -51,7 +108,7 @@ def main():
             species_name = species["species_name"]
             description = f"cell type in {species_name}"
             data_for_item = [
-                wdi_core.WDItemID(
+                datatypes.Item(
                     value=species_qid, prop_nr="P703", references=references
                 )
             ]
@@ -59,64 +116,60 @@ def main():
             description = "cell type"
             data_for_item = []
 
-        try:
-            # Add subclass of (P279) statements
-            subclass_of_statement = get_integrator_statement(
-                row, "P279", "celltypes_dict", "subclass of"
-            )
-            data_for_item.append(subclass_of_statement)
+        # Add subclass of (P279) statements
+        data_for_item = get_quick_item_prop(row, "subclass of", data_for_item)
 
-            # Add term in higher taxon (P10019) statements
-            higher_taxon_statement = get_higher_taxon_statement(row)
-            if higher_taxon_statement:
-                data_for_item.append(higher_taxon_statement)
+        # Add term in higher taxon (P10019) statements
+        higher_taxon_statement = get_higher_taxon_statement(row)
+        if higher_taxon_statement:
+            data_for_item.append(higher_taxon_statement)
 
-            # Add develops from (P3094) statements
-            develops_from_statement = get_integrator_statement(
-                row, "P3094", "celltypes_dict", "develops from"
-            )
-            if develops_from_statement:
-                data_for_item.append(develops_from_statement)
+        # Add develops from (P3094) statements
+        develops_from_statement = get_integrator_statement(
+            row, "P3094", "celltypes_dict", "develops from"
+        )
+        if develops_from_statement:
+            data_for_item.append(develops_from_statement)
 
-            # Add anatomical location (P927) statements
-            location_statement = get_integrator_statement(
-                row, "P927", "part_of", "anatomical location"
-            )
-            if location_statement:
-                data_for_item.append(location_statement)
+        # Add anatomical location (P927) statements
+        location_statement = get_integrator_statement(
+            row, "P927", "part_of", "anatomical location"
+        )
+        if location_statement:
+            data_for_item.append(location_statement)
 
-            # Add article that describes item via "described by source" (P1343) statement
-            if str(row["described by source"]) != "nan":
-                data_for_item.append(
-                    wdi_core.WDItemID(value=row["described by source"], prop_nr="P1343")
-                )
-
-            # Add instances of "cell type"
-            instance = INSTANCE_DICT.get(row["instance of"], INSTANCE_DICT["cell type"])
+        # Add article that describes item via "described by source" (P1343) statement
+        if str(row["described by source"]) != "nan":
             data_for_item.append(
-                wdi_core.WDItemID(value=instance, prop_nr="P31", references=references)
+                datatypes.Item(value=row["described by source"], prop_nr="P1343")
             )
 
-            # Create a new Wikidata item and add aliases, labels and descriptions
-            wd_item = wdi_core.WDItemEngine(data=data_for_item)
-            aliases = row["aliases"].split("|") if str(row["aliases"]) != "nan" else []
-            wd_item.set_label(label=label, lang="en")
-            wd_item.set_aliases(aliases, lang="en")
-            wd_item.set_description(description, lang="en")
+        # Add instances of "cell type"
+        instance = INSTANCE_DICT.get(row["instance of"], INSTANCE_DICT["cell type"])
+        data_for_item.append(
+            datatypes.Item(value=instance, prop_nr="P31", references=references)
+        )
 
-            # Write the new Wikidata item to the Wikidata database and add the label to the celltypes_dict
-            try:
-                wd_item.write(login_instance)
-                DICTS["celltypes_dict"][label] = wd_item.wd_item_id
-            except Exception as e:
-                print(f"Error: {e}")
+        # Create a new Wikidata item and add aliases, labels and descriptions
+        entity = wbi.item.new()
+        for claim in data_for_item:
+            entity.claims.add(claim)
 
+        aliases = row["aliases"].split("|") if str(row["aliases"]) != "nan" else []
+        entity.labels.set("en",label)
+        for alias in aliases:
+            print(alias)
+            entity.aliases.set("en", alias)
+        entity.descriptions.set("en", description)
+
+        # Write the new Wikidata item to the Wikidata database and add the label to the celltypes_dict
+        try:
+            entity.write()
+            DICTS["celltypes_dict"][label] = entity.id
         except Exception as e:
-            traceback.print_exc()
             print(f"Error: {e}")
-            break
 
-        time.sleep(1)
+        time.sleep(2)
 
     # Write updated celltypes_dict to file
     write_dict(DICTS["celltypes_dict"], "celltypes_dict")
@@ -145,7 +198,7 @@ def get_higher_taxon_statement(row):
         higher_taxon_dict = add_key(DICTS["celltypes_dict"], higher_taxon_term)
         write_dict(higher_taxon_dict, "celltypes_dict")
         higher_taxon_qid = higher_taxon_dict[higher_taxon_term]
-    return wdi_core.WDItemID(value=higher_taxon_qid, prop_nr="P10019")
+    return datatypes.Item(value=higher_taxon_qid, prop_nr="P10019")
 
 
 def get_integrator_statement(row, prop_nr, reference_dict_name, rowname):
@@ -163,7 +216,7 @@ def get_integrator_statement(row, prop_nr, reference_dict_name, rowname):
             reference_dict = add_key(reference_dict, term)
         write_dict(reference_dict, reference_dict_name)
         subclass = reference_dict[term]
-    return wdi_core.WDItemID(value=subclass, prop_nr=prop_nr)
+    return datatypes.Item(value=subclass, prop_nr=prop_nr)
 
 
 def write_dict(reference_dict, reference_dict_name):
